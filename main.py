@@ -3,6 +3,7 @@ from connect import load_data
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 from datetime import date, datetime, timedelta
+import pytz
 
 # Configuração da página
 st.set_page_config(page_title="📦 Kanban de Pedidos", layout="wide")
@@ -12,14 +13,16 @@ st_autorefresh(interval = 60 * 1000, key="auto_refresh")
 
 # Conteúdo da página
 st.title("📦 Kanban de Pedidos")
-st.markdown(f"🕒 Última atualização: **{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}**")
+br_tz = pytz.timezone("America/Sao_Paulo")
+fuso_brasil = pytz.timezone('America/Sao_Paulo')
+st.markdown(f"🕒 Última atualização: **{datetime.now(br_tz).strftime('%d/%m/%Y %H:%M:%S')}**")
 
 # CARREGAMENTO E PRÉ-PROCESSAMENTO DOS DADOS
 df = load_data(source="postgres")
 
 # Converter colunas para datetime
 for col in ['data_hora_pedido','data_hora_faturamento','inicio_separacao', 'fim_separacao', 'inicio_conferencia', 'fim_conferencia']:
-    df[col] = pd.to_datetime(df[col], errors='coerce')
+    df[col] = pd.to_datetime(df[col], errors='coerce').dt.tz_localize('America/Sao_Paulo')
 
 df['data_hora_pedido'] = pd.to_datetime(df['data_hora_pedido'], errors='coerce')
 df['tempo_total_pedido'] = pd.to_timedelta(df['tempo_total_pedido'], errors='coerce')
@@ -95,8 +98,19 @@ render_card(col6, "Total Pedido", format_timedelta(tempo_total), format_timedelt
 st.subheader("📋 Pedidos por Status (Hoje)")
 
 # Filtrar apenas os pedidos do dia atual
-hoje = pd.Timestamp(date.today())
-df_hoje = df[df['data_hora_pedido'].dt.date == hoje.date()]
+agora_brasil = pd.Timestamp.now(tz=fuso_brasil)
+hoje = agora_brasil.normalize()  # exemplo: 2025-07-17 00:00:00-03:00
+
+# Converter data_hora_pedido para timezone America/Sao_Paulo, se ainda não estiver com timezone
+if df['data_hora_pedido'].dt.tz is None:
+    # Se timezone-naive, localiza para o fuso correto (assume que a hora está no horário de SP)
+    df['data_hora_pedido'] = df['data_hora_pedido'].dt.tz_localize(fuso_brasil)
+else:
+    # Se já tem timezone, converte para o fuso correto
+    df['data_hora_pedido'] = df['data_hora_pedido'].dt.tz_convert(fuso_brasil)
+
+# Filtrar apenas os pedidos que ocorreram no dia atual, no fuso Brasil
+df_hoje = df[(df['data_hora_pedido'] >= hoje) & (df['data_hora_pedido'] < hoje + pd.Timedelta(days=1))]
 
 # Lista de status e rótulos amigáveis
 status_selecionados = ['pendente', 'em separacao', 'separado','conferido']
@@ -113,27 +127,28 @@ df_status = df_hoje[df_hoje['status_pedido'].isin(status_selecionados)]
 col1, col2, col3, col4 = st.columns(4)
 cols = [col1, col2, col3, col4]
 
-# Preencher as colunas com visual profissional e formatação condicional
-# Horário da última atualização 
-ultima_atualizacao = pd.Timestamp.now()
+# Ajustar timezone nas colunas de data/hora usadas no cálculo
+for col in ['data_hora_pedido', 'inicio_separacao', 'fim_separacao']:
+    if df_status[col].dt.tz is None:
+        df_status[col] = df_status[col].dt.tz_localize(fuso_brasil)
+    else:
+        df_status[col] = df_status[col].dt.tz_convert(fuso_brasil)
+
+# Definir a última atualização com timezone correto
+ultima_atualizacao = pd.Timestamp.now(tz=fuso_brasil)
 
 for idx, status_key in enumerate(status_selecionados):
     df_temp = df_status[df_status['status_pedido'] == status_key].copy()
     df_temp = df_temp[['id_pedido', 'nf', 'cliente', 'data_hora_pedido', 'inicio_separacao', 'fim_separacao']].dropna(subset=['id_pedido'])
 
     # Garantir que 'nf' seja string (evita problemas com número decimal)
-    # Ajuste o campo 'nf' para string sem decimais
     df_temp['nf'] = df_temp['nf'].apply(lambda x: str(int(x)) if pd.notnull(x) else "")
 
-    # Cálculo do tempo no status (em minutos)
     if status_key != 'conferido' and not df_temp.empty:
         def calcular_duracao(row):
             try:
                 if status_key == 'pendente':
-                    if pd.notnull(row['data_hora_pedido']):
-                        base = pd.to_datetime(row['data_hora_pedido'], errors='coerce')                     
-                    else:
-                        return None
+                    base = row['data_hora_pedido']
                 elif status_key == 'em separacao':
                     base = row['inicio_separacao']
                 elif status_key == 'separado':
@@ -147,28 +162,24 @@ for idx, status_key in enumerate(status_selecionados):
             except:
                 return None
 
-        # Aplica cálculo
         df_temp['minutos_no_status'] = df_temp.apply(calcular_duracao, axis=1)
 
-        # Formatação condicional por tempo decorrido
         def aplicar_cor(row):
             minutos = row['minutos_no_status']
             if pd.isnull(minutos):
                 return ''
             if minutos > 4:
-                return 'background-color: #dc3545; color: white; text-align: center; font-size: 12px;'  # vermelho forte
+                return 'background-color: #dc3545; color: white; text-align: center; font-size: 12px;'
             elif minutos > 2:
-                return 'background-color: #ffc107; color: black; text-align: center; font-size: 12px;'  # amarelo forte
+                return 'background-color: #ffc107; color: black; text-align: center; font-size: 12px;'
             return ''
 
-        # Aplica estilo condicional apenas às colunas visuais
-        df_visual = df_temp[['id_pedido', 'cliente','nf']].copy()
+        df_visual = df_temp[['id_pedido', 'cliente', 'nf']].copy()
         estilos = df_temp.apply(aplicar_cor, axis=1).tolist()
         styled_df = df_visual.style.apply(lambda _: estilos, axis=0)
     else:
         styled_df = df_temp[['id_pedido', 'cliente', 'nf']].style
 
-    # Renderização visual por coluna
     with cols[idx]:
         count = len(df_temp)
         st.markdown(f"""
@@ -191,26 +202,3 @@ for idx, status_key in enumerate(status_selecionados):
                 "<div style='color:#888;padding:10px;text-align:center;'>Nenhum pedido.</div>",
                 unsafe_allow_html=True
             )
-
-# EFICIÊNCIA OPERACIONAL (em stand-by)
-# st.subheader("👷 Eficiência Operacional")
-# tab1, tab2 = st.tabs(["Separador", "Conferente"])
-
-# with tab1:
-#     sep_df = df.copy()
-#     sep_df['tempo_sep'] = sep_df['fim_separacao'] - sep_df['inicio_separacao']
-#     sep_grouped = sep_df.groupby('separador').agg({
-#         'id_pedido': 'count',
-#         'tempo_sep': 'mean'
-#     }).reset_index().rename(columns={'id_pedido': 'Qtd Pedidos', 'tempo_sep': 'Tempo Médio'})
-#     st.dataframe(sep_grouped)
-
-# with tab2:
-#     conf_df = df.copy()
-#     conf_df['tempo_conf'] = conf_df['fim_conferencia'] - conf_df['inicio_conferencia']
-#     conf_grouped = conf_df.groupby('conferente').agg({
-#         'id_pedido': 'count',
-#         'tempo_conf': 'mean'
-#     }).reset_index().rename(columns={'id_pedido': 'Qtd Pedidos', 'tempo_conf': 'Tempo Médio'})
-#     st.dataframe(conf_grouped)
-
