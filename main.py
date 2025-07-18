@@ -118,7 +118,7 @@ render_card(col1, "Até Início Separação", format_timedelta(tempo_ate_separac
 render_card(col2, "Separação", format_timedelta(tempo_sep), format_timedelta(tempo_sep_max), "⏱️")
 render_card(col3, "Espera Conferência", format_timedelta(tempo_espera_conf), format_timedelta(tempo_espera_conf_max), "⏳")
 render_card(col4, "Conferência", format_timedelta(tempo_conf), format_timedelta(tempo_conf_max), "🧪")
-render_card(col5, "Faturamentar", format_timedelta(tempo_para_faturamento), format_timedelta(tempo_para_faturamento_max), "💰")
+render_card(col5, "Faturar", format_timedelta(tempo_para_faturamento), format_timedelta(tempo_para_faturamento_max), "💰")
 render_card(col6, "Total Pedido", format_timedelta(tempo_total), format_timedelta(tempo_total_max), "📦")
 
 # PEDIDOS POR STATUS 
