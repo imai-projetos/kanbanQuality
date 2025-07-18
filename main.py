@@ -12,7 +12,7 @@ st.set_page_config(page_title="📦 Kanban de Pedidos", layout="wide")
 st_autorefresh(interval = 60 * 1000, key="auto_refresh")
 
 # Conteúdo da página
-st.title("📦 Kanban de Pedidos")
+st.title("📦 Kanban de Pedidos - Operacional")
 br_tz = pytz.timezone("America/Sao_Paulo")
 fuso_brasil = pytz.timezone('America/Sao_Paulo')
 st.markdown(f"🕒 Última atualização: **{datetime.now(br_tz).strftime('%d/%m/%Y %H:%M:%S')}**")
@@ -23,6 +23,25 @@ df = load_data(source="postgres")
 # Converter colunas para datetime
 for col in ['data_hora_pedido','data_hora_faturamento','inicio_separacao', 'fim_separacao', 'inicio_conferencia', 'fim_conferencia']:
     df[col] = pd.to_datetime(df[col], errors='coerce').dt.tz_localize('America/Sao_Paulo')
+
+st.sidebar.header("🔍 Filtros")
+
+# FILTRO DE FILIAL (empresa)
+filiais_disponiveis = sorted(df['empresa'].dropna().unique().tolist())
+filial_selecionada = st.sidebar.multiselect("Filial", filiais_disponiveis, default=filiais_disponiveis)
+
+# FILTRO DE MODALIDADE
+modalidades_disponiveis = sorted(df['modalidade'].dropna().unique().tolist())
+modalidade_selecionada = st.sidebar.multiselect("Modalidade", modalidades_disponiveis, default=modalidades_disponiveis)
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("⏱️ Parâmetros de Tempo")
+
+limite_vermelho = st.sidebar.slider("⛔ Tempo para alerta vermelho (minutos)", min_value=1, max_value=60, value=4)
+limite_amarelo = st.sidebar.slider("⚠️ Tempo para alerta amarelo (minutos)", min_value=0, max_value=limite_vermelho, value=2)
+
+# APLICAR FILTROS AO DATAFRAME
+df = df[df['empresa'].isin(filial_selecionada) & df['modalidade'].isin(modalidade_selecionada)]
 
 df['data_hora_pedido'] = pd.to_datetime(df['data_hora_pedido'], errors='coerce')
 df['tempo_total_pedido'] = pd.to_timedelta(df['tempo_total_pedido'], errors='coerce')
@@ -59,6 +78,14 @@ tempo_espera_conf_max = (df['inicio_conferencia'] - df['fim_separacao']).max()
 tempo_para_faturamento = (df['data_hora_faturamento'] - df['data_hora_pedido']).mean()
 tempo_para_faturamento_max = (df['data_hora_faturamento'] - df['data_hora_pedido']).max()
 
+# 🚨 Indicador: Pedidos acima de 10 minutos
+total_pedidos = df.shape[0]
+acima_10min = df[df['tempo_total_pedido'] > pd.Timedelta(minutes=10)].shape[0]
+percentual_acima_10min = (acima_10min / total_pedidos * 100) if total_pedidos > 0 else 0
+
+st.markdown(f"📋 Total Pedidos: **{total_pedidos}**")
+st.markdown(f"🚨 Pedidos acima de 10 minutos: **{acima_10min}** ({percentual_acima_10min:.1f}%)")
+
 # Exibir indicadores
 # Função para formatar timedelta para HH:MM:SS
 def format_timedelta(td):
@@ -94,8 +121,8 @@ render_card(col4, "Conferência", format_timedelta(tempo_conf), format_timedelta
 render_card(col5, "Faturamentar", format_timedelta(tempo_para_faturamento), format_timedelta(tempo_para_faturamento_max), "💰")
 render_card(col6, "Total Pedido", format_timedelta(tempo_total), format_timedelta(tempo_total_max), "📦")
 
-# PEDIDOS POR STATUS (apenas do dia atual)
-st.subheader("📋 Pedidos por Status (Hoje)")
+# PEDIDOS POR STATUS 
+st.subheader("📋 Pedidos por Status")
 
 # Filtrar apenas os pedidos do dia atual
 agora_brasil = pd.Timestamp.now(tz=fuso_brasil)
@@ -113,19 +140,18 @@ else:
 df_hoje = df[(df['data_hora_pedido'] >= hoje) & (df['data_hora_pedido'] < hoje + pd.Timedelta(days=1))]
 
 # Lista de status e rótulos amigáveis
-status_selecionados = ['pendente', 'em separacao', 'separado','conferido']
+status_selecionados = ['pendente', 'em separacao', 'separado']
 status_display = {
     'pendente': 'Aguardando Separação',
     'em separacao': 'Em Separação',
-    'separado': 'Aguardando Conferência',
-    'conferido': 'Conferido'}
+    'separado': 'Aguardando Conferência'}
 
 # Filtrar apenas os status desejados
 df_status = df_hoje[df_hoje['status_pedido'].isin(status_selecionados)]
 
 # Criar colunas lado a lado
-col1, col2, col3, col4 = st.columns(4)
-cols = [col1, col2, col3, col4]
+col1, col2, col3= st.columns(3)
+cols = [col1, col2, col3]
 
 # Ajustar timezone nas colunas de data/hora usadas no cálculo
 for col in ['data_hora_pedido', 'inicio_separacao', 'fim_separacao']:
@@ -168,9 +194,9 @@ for idx, status_key in enumerate(status_selecionados):
             minutos = row['minutos_no_status']
             if pd.isnull(minutos):
                 return ''
-            if minutos > 4:
+            if minutos > limite_vermelho:
                 return 'background-color: #dc3545; color: white; text-align: center; font-size: 12px;'
-            elif minutos > 2:
+            elif minutos > limite_amarelo:
                 return 'background-color: #ffc107; color: black; text-align: center; font-size: 12px;'
             return ''
 
@@ -194,9 +220,10 @@ for idx, status_key in enumerate(status_selecionados):
             st.dataframe(
                 styled_df,
                 use_container_width=True,
-                hide_index=True,
-                height=min(400, 40 + 40 * len(df_temp))
+                hide_index=True
             )
+
+            df_temp = df_temp.sort_values(by='id_pedido', ascending=False)
         else:
             st.markdown(
                 "<div style='color:#888;padding:10px;text-align:center;'>Nenhum pedido.</div>",
