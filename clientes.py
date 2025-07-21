@@ -105,15 +105,14 @@ for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
         cor_fonte = tabela_cores[grupo_status]['font']
         class_name = grupo_status.replace(' ', '-') + "-table"
 
-        # Header do card
         st.markdown(f"""
-            <div style='background-color:#040300FF; padding:8px; border-radius:8px;
+            <div style='background-color: white; padding:8px; border-radius:8px;
                         text-align:center; margin-bottom:10px; 
-                        border: 2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.1);'>
-                <h5 style='color:white; margin:1; font-size:22px; text-transform:uppercase;'>
+                        border: 2px solid black; box-shadow:0 2px 4px rgba(0,0,0,0.1);'>
+                <h5 style='color: black; margin:1; font-size:22px; text-transform:uppercase;'>
                     {display_name}
                 </h5>
-                <p style='color:white; margin:0; font-size:20px'>{count} pedido(s)</p>
+                <p style='color: black; margin:0; font-size:20px'>{count} pedido(s)</p>
             </div>
         """, unsafe_allow_html=True)
 
