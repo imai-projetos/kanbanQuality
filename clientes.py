@@ -155,10 +155,10 @@ for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
                 'id_pedido': 'PEDIDO',
                 'nf': 'NF',
                 'cliente': 'CLIENTE',
-                'hora_emissao': 'HORA PEDIDO'
+                'hora_emissao': 'EMISSÃO'
             })
 
-            df_temp = df_temp[['PEDIDO', 'NF', 'CLIENTE', 'HORA PEDIDO']]
+            df_temp = df_temp[['PEDIDO', 'NF', 'CLIENTE', 'EMISSÃO']]
 
             html_table = df_temp.to_html(classes=class_name, index=False, escape=False)
             st.markdown(html_table, unsafe_allow_html=True)
