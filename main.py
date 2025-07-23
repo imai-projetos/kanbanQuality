@@ -165,7 +165,7 @@ ultima_atualizacao = pd.Timestamp.now(tz=fuso_brasil)
 
 for idx, status_key in enumerate(status_selecionados):
     df_temp = df_status[df_status['status_pedido'] == status_key].copy()
-    df_temp = df_temp[['id_pedido', 'nf', 'cliente', 'data_hora_pedido', 'inicio_separacao', 'fim_separacao']].dropna(subset=['id_pedido'])
+    df_temp = df_temp[['id_pedido', 'nf', 'cliente', 'modalidade', 'data_hora_pedido', 'inicio_separacao', 'fim_separacao']].dropna(subset=['id_pedido'])
 
     # Garantir que 'nf' seja string (evita problemas com número decimal)
     df_temp['nf'] = df_temp['nf'].apply(lambda x: str(int(x)) if pd.notnull(x) else "")
@@ -200,7 +200,7 @@ for idx, status_key in enumerate(status_selecionados):
                 return 'background-color: #ffc107; color: black; text-align: center; font-size: 12px;'
             return ''
 
-        df_visual = df_temp[['id_pedido', 'cliente', 'nf']].copy()
+        df_visual = df_temp[['id_pedido', 'cliente', 'nf','modalidade']].copy()
         estilos = df_temp.apply(aplicar_cor, axis=1).tolist()
         styled_df = df_visual.style.apply(lambda _: estilos, axis=0)
     else:
