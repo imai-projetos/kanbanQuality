@@ -32,8 +32,8 @@ filial_selecionada = st.sidebar.multiselect("Filial", filiais_disponiveis, defau
 
 # Novos parâmetros na sidebar
 st.sidebar.markdown("⏱️ Tempo máximo de exibição (em minutos):")
-limite_caixa = st.sidebar.slider("Dirija-se ao Caixa", 1, 60, 20)
-limite_retirada = st.sidebar.slider("Retire seu Pedido", 1, 60, 30)
+limite_caixa = st.sidebar.slider("Dirija-se ao Caixa", 1, 60, 10)
+limite_retirada = st.sidebar.slider("Retire seu Pedido", 1, 60, 10)
 
 # Aplicar filtros: apenas BALCAO e filiais selecionadas
 df = df[(df['empresa'].isin(filial_selecionada)) & (df['modalidade'] == 'BALCAO')]
@@ -84,7 +84,7 @@ tabela_cores = {
     'em separacao': {'bg': '#ffc107', 'header': '#e0a800', 'font': 'black'},
     'em conferencia': {'bg': '#fd7e14', 'header': '#e8590c', 'font': 'white'},
     'dirija-se ao caixa': {'bg': '#28a745', 'header': '#218838', 'font': 'white'},
-    'retire seu pedido': {'bg': '#1239FF', 'header': '#1239FF', 'font': 'white'}
+    'retire seu pedido': {'bg': '#1239FF', 'header': "#0A26AF", 'font': 'white'}
 }
 
 # Criar colunas para exibição
@@ -92,8 +92,13 @@ col1, col2, col3, col4 = st.columns(4)
 cols = [col1, col2, col3, col4]
 
 for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
-    df_temp = df_temp[['id_pedido', 'nf', 'cliente']].dropna(subset=['id_pedido']).copy()
+    df_temp = df_temp[['id_pedido', 'nf', 'cliente', 'data_hora_pedido']].dropna(subset=['id_pedido']).copy()
+    
+    # Formatar NF
     df_temp['nf'] = df_temp['nf'].apply(lambda x: str(int(x)) if pd.notnull(x) else "")
+    
+    # Criar coluna com hora da emissão
+    df_temp['hora_emissao'] = pd.to_datetime(df_temp['data_hora_pedido'], errors='coerce').dt.strftime('%H:%M')
 
     with cols[idx]:
         count = len(df_temp)
@@ -147,10 +152,13 @@ for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
             # Ordenar e renomear
             df_temp = df_temp.sort_values(by='id_pedido', ascending=False)
             df_temp = df_temp.rename(columns={
-                'id_pedido': 'ID_PEDIDO',
+                'id_pedido': 'PEDIDO',
                 'nf': 'NF',
-                'cliente': 'CLIENTE'
+                'cliente': 'CLIENTE',
+                'hora_emissao': 'HORA PEDIDO'
             })
+
+            df_temp = df_temp[['PEDIDO', 'NF', 'CLIENTE', 'HORA PEDIDO']]
 
             html_table = df_temp.to_html(classes=class_name, index=False, escape=False)
             st.markdown(html_table, unsafe_allow_html=True)
