@@ -82,8 +82,8 @@ status_display = {
 # Define a cor da tabela com base no status
 tabela_cores = {
     'em separacao': {'bg': '#ffc107', 'header': '#e0a800', 'font': 'black'},
-    'em conferencia': {'bg': '#fd7e14', 'header': '#e8590c', 'font': 'white'},
-    'dirija-se ao caixa': {'bg': '#28a745', 'header': '#218838', 'font': 'white'},
+    'em conferencia': {'bg': '#fd7e14', 'header': '#e8590c', 'font': 'black'},
+    'dirija-se ao caixa': {'bg': '#28a745', 'header': '#218838', 'font': 'black'},
     'retire seu pedido': {'bg': '#1239FF', 'header': "#0A26AF", 'font': 'white'}
 }
 
@@ -130,7 +130,7 @@ for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
                         color: {cor_fonte};
                         border-collapse: collapse;
                         width: 100%;
-                        font-size: 16px;
+                        font-size: 20px;
                     }}
                     .{class_name} th, .{class_name} td {{
                         border: 1px solid #ffffff22;
@@ -142,7 +142,7 @@ for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
                         color: white;
                         text-transform: uppercase;
                     }}
-                    .{class_name} td:nth-child(3) {{
+                    .{class_name} td:nth-child(2) {{
                         text-align: left !important;
                         padding-left: 10px;
                     }}
@@ -151,14 +151,13 @@ for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
 
             # Ordenar e renomear
             df_temp = df_temp.sort_values(by='id_pedido', ascending=False)
-            df_temp = df_temp.rename(columns={
-                'id_pedido': 'PEDIDO',
+            df_temp = df_temp.rename(columns={                
                 'nf': 'NF',
                 'cliente': 'CLIENTE',
                 'hora_emissao': 'EMISSÃO'
             })
 
-            df_temp = df_temp[['PEDIDO', 'NF', 'CLIENTE', 'EMISSÃO']]
+            df_temp = df_temp[['NF', 'CLIENTE', 'EMISSÃO']]
 
             html_table = df_temp.to_html(classes=class_name, index=False, escape=False)
             st.markdown(html_table, unsafe_allow_html=True)
