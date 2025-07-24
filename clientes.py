@@ -93,10 +93,13 @@ cols = [col1, col2, col3, col4]
 
 for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
     df_temp = df_temp[['id_pedido', 'nf', 'cliente', 'data_hora_pedido']].dropna(subset=['id_pedido']).copy()
-    
+
+    # Remover o código antes do nome do cliente
+    df_temp['cliente'] = df_temp['cliente'].str.split(' - ', n=1).str[1]
+
     # Formatar NF
     df_temp['nf'] = df_temp['nf'].apply(lambda x: str(int(x)) if pd.notnull(x) else "")
-    
+
     # Criar coluna com hora da emissão
     df_temp['hora_emissao'] = pd.to_datetime(df_temp['data_hora_pedido'], errors='coerce').dt.strftime('%H:%M')
 
