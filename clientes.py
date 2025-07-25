@@ -75,22 +75,23 @@ status_grupos['retire seu pedido'] = status_grupos['retire seu pedido'][
 status_display = {
     'em separacao': 'Em Separação',
     'em conferencia': 'Em Conferência',
-    'dirija-se ao caixa': 'Dirija-se ao Caixa',
-    'retire seu pedido': 'Retire seu Pedido'
+    #'dirija-se ao caixa': 'Dirija-se ao Caixa',
+    'retire seu pedido': 'Pedidos Concluídos'
 }
 
 # Define a cor da tabela com base no status
 tabela_cores = {
-    'em separacao': {'bg': '#ffc107', 'header': '#e0a800', 'font': 'black'},
-    'em conferencia': {'bg': '#fd7e14', 'header': '#e8590c', 'font': 'black'},
-    'dirija-se ao caixa': {'bg': '#28a745', 'header': '#218838', 'font': 'black'},
-    'retire seu pedido': {'bg': '#1239FF', 'header': "#0A26AF", 'font': 'white'}
+    'em separacao': {'bg': '#fd7e14', 'header': '#e8590c', 'font': 'black'},
+    'em conferencia': {'bg': '#ffc107', 'header': '#e0a800', 'font': 'black'},
+    #'dirija-se ao caixa': {'bg': '#28a745', 'header': '#218838', 'font': 'black'},
+    'retire seu pedido': {'bg': '#28a745', 'header': '#218838', 'font': 'black'}
 }
 
 # Criar colunas para exibição
-col1, col2, col3, col4 = st.columns(4)
-cols = [col1, col2, col3, col4]
+col1, col2, col3 = st.columns(3)
+cols = [col1, col2, col3]
 
+status_grupos.pop('dirija-se ao caixa', None)
 for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
     df_temp = df_temp[['id_pedido', 'nf', 'cliente', 'data_hora_pedido']].dropna(subset=['id_pedido']).copy()
 
@@ -117,10 +118,10 @@ for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
             <div style='background-color: white; padding:8px; border-radius:8px;
                         text-align:center; margin-bottom:10px; 
                         border: 2px solid black; box-shadow:0 2px 4px rgba(0,0,0,0.1);'>
-                <h5 style='color: black; margin:1; font-size:22px; text-transform:uppercase;'>
+                <h5 style='color: black; margin:1; font-size:28px; text-transform:uppercase;'>
                     {display_name}
                 </h5>
-                <p style='color: black; margin:0; font-size:20px'>{count} pedido(s)</p>
+                <p style='color: black; margin:0; font-size:25px'>{count} pedido(s)</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -154,18 +155,19 @@ for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
 
             # Ordenar e renomear
             df_temp = df_temp.sort_values(by='id_pedido', ascending=False)
-            df_temp = df_temp.rename(columns={                
-                'nf': 'NF',
+            df_temp = df_temp.rename(columns={     
+                'hora_emissao': 'EMISSÃO',           
                 'cliente': 'CLIENTE',
-                'hora_emissao': 'EMISSÃO'
+                'nf': 'NF'
+                
             })
 
-            df_temp = df_temp[['NF', 'CLIENTE', 'EMISSÃO']]
+            df_temp = df_temp[['EMISSÃO', 'CLIENTE', 'NF']]
 
             html_table = df_temp.to_html(classes=class_name, index=False, escape=False)
             st.markdown(html_table, unsafe_allow_html=True)
         else:
             st.markdown(
-                "<div style='color:#888;padding:18px;text-align:center;'>Nenhum pedido.</div>",
+                "<div style='color:#888;padding:20px;text-align:center;'>Nenhum pedido.</div>",
                 unsafe_allow_html=True
             )
