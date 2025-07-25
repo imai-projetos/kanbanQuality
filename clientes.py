@@ -8,6 +8,25 @@ import pytz
 # Configuração da página
 st.set_page_config(page_title="📦 Quadro de Pedidos", layout="wide")
 
+st.markdown("""
+    <style>
+        /* Reduz padding superior */
+        .block-container {
+            padding-top: 0rem;
+        }
+
+        /* Remove margem entre barra de título e conteúdo */
+        header[data-testid="stHeader"] {
+            margin: 0;
+        }
+
+        /* Remove padding extra da barra de navegação superior */
+        div.block-container > div:first-child {
+            padding-top: 0rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Atualização automática a cada 45 segundos
 st_autorefresh(interval=45 * 1000, key="auto_refresh")
 
@@ -30,11 +49,6 @@ st.sidebar.header("🔍 Filtros")
 filiais_disponiveis = sorted(df['empresa'].dropna().unique().tolist())
 filial_selecionada = st.sidebar.multiselect("Filial", filiais_disponiveis, default=filiais_disponiveis)
 
-# Novos parâmetros na sidebar
-st.sidebar.markdown("⏱️ Tempo máximo de exibição (em minutos):")
-limite_caixa = st.sidebar.slider("Dirija-se ao Caixa", 1, 60, 10)
-limite_retirada = st.sidebar.slider("Retire seu Pedido", 1, 60, 10)
-
 # Aplicar filtros: apenas BALCAO e filiais selecionadas
 df = df[(df['empresa'].isin(filial_selecionada)) & (df['modalidade'] == 'BALCAO')]
 
@@ -56,40 +70,22 @@ for col in ['inicio_separacao', 'fim_separacao', 'inicio_conferencia', 'fim_conf
 status_grupos = {
     'em separacao': df_hoje[df_hoje['status_pedido'].str.lower().isin(['pendente', 'em separacao'])],
     'em conferencia': df_hoje[df_hoje['status_pedido'].str.lower() == 'separado'],
-    'dirija-se ao caixa': df_hoje[df_hoje['fim_conferencia'].notna() & df_hoje['data_hora_faturamento'].isna()],
-    'retire seu pedido': df_hoje[df_hoje['fim_conferencia'].notna() & df_hoje['data_hora_faturamento'].notna()]
 }
-
-# Aplicar limite de tempo para os status finais
-hora_limite_caixa = agora - pd.Timedelta(minutes=limite_caixa)
-hora_limite_retirada = agora - pd.Timedelta(minutes=limite_retirada)
-
-status_grupos['dirija-se ao caixa'] = status_grupos['dirija-se ao caixa'][
-    status_grupos['dirija-se ao caixa']['fim_conferencia'] >= hora_limite_caixa
-]
-
-status_grupos['retire seu pedido'] = status_grupos['retire seu pedido'][
-    status_grupos['retire seu pedido']['fim_conferencia'] >= hora_limite_retirada
-]
 
 status_display = {
     'em separacao': 'Em Separação',
-    'em conferencia': 'Em Conferência',
-    #'dirija-se ao caixa': 'Dirija-se ao Caixa',
-    'retire seu pedido': 'Pedidos Concluídos'
+    'em conferencia': 'Em Conferência'
 }
 
 # Define a cor da tabela com base no status
 tabela_cores = {
     'em separacao': {'bg': '#fd7e14', 'header': '#e8590c', 'font': 'black'},
     'em conferencia': {'bg': '#ffc107', 'header': '#e0a800', 'font': 'black'},
-    #'dirija-se ao caixa': {'bg': '#28a745', 'header': '#218838', 'font': 'black'},
-    'retire seu pedido': {'bg': '#28a745', 'header': '#218838', 'font': 'black'}
 }
 
 # Criar colunas para exibição
-col1, col2, col3 = st.columns(3)
-cols = [col1, col2, col3]
+col1, col2 = st.columns(2)
+cols = [col1, col2]
 
 status_grupos.pop('dirija-se ao caixa', None)
 for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
@@ -115,13 +111,13 @@ for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
         class_name = grupo_status.replace(' ', '-') + "-table"
 
         st.markdown(f"""
-            <div style='background-color: white; padding:8px; border-radius:8px;
+            <div style='background-color: black; padding:8px; border-radius:8px;
                         text-align:center; margin-bottom:10px; 
-                        border: 2px solid black; box-shadow:0 2px 4px rgba(0,0,0,0.1);'>
-                <h5 style='color: black; margin:1; font-size:28px; text-transform:uppercase;'>
+                        border: 2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.1);'>
+                <h5 style='color: white; margin:1; font-size:28px; text-transform:uppercase;'>
                     {display_name}
                 </h5>
-                <p style='color: black; margin:0; font-size:25px'>{count} pedido(s)</p>
+                <p style='color: white; margin:0; font-size:25px'>{count} pedido(s)</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -134,7 +130,8 @@ for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
                         color: {cor_fonte};
                         border-collapse: collapse;
                         width: 100%;
-                        font-size: 20px;
+                        font-size: 30px;
+                        font-weight: bold;  /* <- Negrito nos cabeçalhos */
                     }}
                     .{class_name} th, .{class_name} td {{
                         border: 1px solid #ffffff22;
@@ -143,8 +140,9 @@ for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
                     }}
                     .{class_name} th {{
                         background-color: {cor_header};
-                        color: white;
+                        color: black;
                         text-transform: uppercase;
+                        
                     }}
                     .{class_name} td:nth-child(2) {{
                         text-align: left !important;
