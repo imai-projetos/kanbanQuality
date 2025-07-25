@@ -200,11 +200,22 @@ for idx, status_key in enumerate(status_selecionados):
                 return 'background-color: #ffc107; color: black; text-align: center; font-size: 12px;'
             return ''
 
-        df_visual = df_temp[['id_pedido', 'cliente', 'nf','modalidade']].copy()
+        df_visual = df_temp[['data_hora_pedido', 'cliente', 'nf', 'modalidade']].copy()
+
+        # Extrair só HH:MM
+        df_visual['data_hora_pedido'] = pd.to_datetime(df_visual['data_hora_pedido']).dt.strftime('%H:%M')
+
+        # Renomear colunas para o display
+        df_visual = df_visual.rename(columns={
+            'data_hora_pedido': 'EMISSÃO',
+            'cliente': 'CLIENTE',
+            'nf': 'NF',
+            'modalidade': 'MODALIDADE'
+        })
         estilos = df_temp.apply(aplicar_cor, axis=1).tolist()
         styled_df = df_visual.style.apply(lambda _: estilos, axis=0)
     else:
-        styled_df = df_temp[['id_pedido', 'cliente', 'nf']].style
+        styled_df = df_temp[['id_pedido', 'cliente', 'nf','modalidade']].style
 
     with cols[idx]:
         count = len(df_temp)
@@ -226,6 +237,6 @@ for idx, status_key in enumerate(status_selecionados):
             df_temp = df_temp.sort_values(by='id_pedido', ascending=False)
         else:
             st.markdown(
-                "<div style='color:#888;padding:10px;text-align:center;'>Nenhum pedido.</div>",
+                "<div style='color:white;padding:15px;text-align:center;'>Nenhum pedido.</div>",
                 unsafe_allow_html=True
             )
