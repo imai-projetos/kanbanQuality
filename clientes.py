@@ -28,7 +28,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Atualização automática a cada 45 segundos
-st_autorefresh(interval=45 * 1000, key="auto_refresh")
+st_autorefresh(interval= 30 * 1000, key="auto_refresh")
 
 # Título e data/hora da última atualização
 st.title("📦 Quadro de Pedidos - Clientes Quality")
