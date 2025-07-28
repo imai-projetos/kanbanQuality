@@ -37,8 +37,8 @@ modalidade_selecionada = st.sidebar.multiselect("Modalidade", modalidades_dispon
 st.sidebar.markdown("---")
 st.sidebar.subheader("⏱️ Parâmetros de Tempo")
 
-limite_vermelho = st.sidebar.slider("⛔ Tempo para alerta vermelho (minutos)", min_value=1, max_value=60, value=4)
-limite_amarelo = st.sidebar.slider("⚠️ Tempo para alerta amarelo (minutos)", min_value=0, max_value=limite_vermelho, value=2)
+limite_vermelho = st.sidebar.slider("⛔ Tempo para alerta vermelho (minutos)", min_value=1, max_value=60, value=5)
+limite_amarelo = st.sidebar.slider("⚠️ Tempo para alerta amarelo (minutos)", min_value=0, max_value=limite_vermelho, value=3)
 
 # APLICAR FILTROS AO DATAFRAME
 df = df[df['empresa'].isin(filial_selecionada) & df['modalidade'].isin(modalidade_selecionada)]
