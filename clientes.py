@@ -152,7 +152,7 @@ for idx, (grupo_status, df_temp) in enumerate(status_grupos.items()):
             """, unsafe_allow_html=True)
 
             # Ordenar e renomear
-            df_temp = df_temp.sort_values(by='id_pedido', ascending=False)
+            df_temp = df_temp.sort_values(by='cliente', ascending=True)
             df_temp = df_temp.rename(columns={     
                 'hora_emissao': 'EMISSÃO',           
                 'cliente': 'CLIENTE',
