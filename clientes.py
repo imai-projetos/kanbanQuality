@@ -8,17 +8,24 @@ import pytz
 # Configuração da página
 st.set_page_config(page_title="📦 Quadro de Pedidos", layout="wide")
 
-# Estilos personalizados
+# CSS para ocupar altura total da janela
 st.markdown("""
     <style>
+        html, body, [data-testid="stApp"] {
+            height: 100%;
+        }
+        .main {
+            min-height: 100vh;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
         .block-container {
             padding-top: 0rem;
+            flex: 1 0 auto;
         }
         header[data-testid="stHeader"] {
             margin: 0;
-        }
-        div.block-container > div:first-child {
-            padding-top: 0rem;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -119,12 +126,12 @@ with st.container():
                     color: {cor_fonte};
                     border-collapse: collapse;
                     width: 100%;
-                    font-size: 30px;
+                    font-size: 28px;
                     font-weight: bold;
                 }}
                 .{class_name} th, .{class_name} td {{
                     border: 1px solid #ffffff22;
-                    padding: 5px;
+                    padding: 1px;
                     text-align: center;
                 }}
                 .{class_name} th {{
@@ -150,6 +157,6 @@ with st.container():
         st.markdown(html_table, unsafe_allow_html=True)
     else:
         st.markdown(
-            "<div style='color:#888;padding:20px;text-align:center;'>Nenhum pedido.</div>",
+            "<div style='color:#888;padding:15px;text-align:center;'>Nenhum pedido.</div>",
             unsafe_allow_html=True
         )
