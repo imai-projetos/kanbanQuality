@@ -171,27 +171,46 @@ for idx, status_key in enumerate(status_selecionados):
     df_temp['nf'] = df_temp['nf'].apply(lambda x: str(int(x)) if pd.notnull(x) else "")
 
     if status_key != 'conferido' and not df_temp.empty:
-        def calcular_duracao(row):
-            try:
-                if status_key == 'pendente':
-                    base = row['data_hora_pedido']
-                elif status_key == 'em separacao':
-                    base = row['inicio_separacao']
-                elif status_key == 'separado':
-                    base = row['fim_separacao']
-                else:
-                    return None
-
-                if pd.notnull(base):
-                    return (ultima_atualizacao - base).total_seconds() / 60
+        def calcular_ts(row):
+            if status_key == 'pendente':
+                base = row['data_hora_pedido']
+            elif status_key == 'em separacao':
+                base = row['inicio_separacao']
+            elif status_key == 'separado':
+                base = row['fim_separacao']
+            else:
                 return None
-            except:
-                return None
+            return (ultima_atualizacao - base).total_seconds() / 60 if pd.notnull(base) else None
 
-        df_temp['minutos_no_status'] = df_temp.apply(calcular_duracao, axis=1)
+        # Tempo no status em minutos (numérico)
+        df_temp['minutos_no_status'] = df_temp.apply(calcular_ts, axis=1)
 
+        # Tempo acumulado desde emissão (numérico em minutos)
+        df_temp['minutos_total'] = (ultima_atualizacao - df_temp['data_hora_pedido']).dt.total_seconds() / 60
+
+        # Função formatadora
+        def fmt_minutos(m):
+            if pd.isna(m): return "00:00:00"
+            s = int(m * 60)
+            return f"{s//3600:02d}:{(s%3600)//60:02d}:{s%60:02d}"
+
+        # Criar colunas visuais formatadas
+        df_temp['T.S.'] = df_temp['minutos_no_status'].apply(fmt_minutos)
+        df_temp['T.A.'] = df_temp['minutos_total'].apply(fmt_minutos)
+
+        # Montar visual
+        df_visual = df_temp[['data_hora_pedido', 'cliente', 'nf', 'modalidade', 'T.S.', 'T.A.']].copy()
+        df_visual['data_hora_pedido'] = pd.to_datetime(df_visual['data_hora_pedido']).dt.strftime('%H:%M')
+        df_visual = df_visual.rename(columns={
+            'data_hora_pedido': 'EMISSÃO',
+            'cliente': 'CLIENTE',
+            'nf': 'NF',
+            'modalidade': 'MODALIDADE'
+        })
+
+        # Aplicar estilo usando minutos_no_status
         def aplicar_cor(row):
-            minutos = row['minutos_no_status']
+            minutos = row['minutos_total']  # agora é o tempo acumulado
             if pd.isnull(minutos):
                 return ''
             if minutos > limite_vermelho:
@@ -200,20 +219,9 @@ for idx, status_key in enumerate(status_selecionados):
                 return 'background-color: #ffc107; color: black; text-align: center; font-size: 12px;'
             return ''
 
-        df_visual = df_temp[['data_hora_pedido', 'cliente', 'nf', 'modalidade']].copy()
-
-        # Extrair só HH:MM
-        df_visual['data_hora_pedido'] = pd.to_datetime(df_visual['data_hora_pedido']).dt.strftime('%H:%M')
-
-        # Renomear colunas para o display
-        df_visual = df_visual.rename(columns={
-            'data_hora_pedido': 'EMISSÃO',
-            'cliente': 'CLIENTE',
-            'nf': 'NF',
-            'modalidade': 'MODALIDADE'
-        })
         estilos = df_temp.apply(aplicar_cor, axis=1).tolist()
         styled_df = df_visual.style.apply(lambda _: estilos, axis=0)
+
     else:
         styled_df = df_temp[['id_pedido', 'cliente', 'nf','modalidade']].style
 
